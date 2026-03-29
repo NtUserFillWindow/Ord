@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/解决方案项/">
+    <File Path=".clang-format" />
+    <File Path=".clang-tidy" />
+  </Folder>
+  <Project Path="Dll1/Dll1.vcxproj" Id="e62f2b5b-1941-4cd5-82f9-4b2a5a6b3cc3" />
+  <Project Path="Lyra/Lyra.vcxproj" Id="fd9163e3-2343-4aeb-a5bf-37d64b2fd038" />
+</Solution>
