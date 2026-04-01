@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #define NOMINMAX
 
 #include <memory>
@@ -17,12 +17,12 @@ static inline UINT_PTR                          g_gdiplusToken{};
 
 class WindowFoundation {
   private:
-    inline static ATOM _CommonClassAtom = NULL;
+    inline static ATOM _CommonClassAtom = 0;
 
   public:
     WindowFoundation() : _selfLayout(new UI::Components::Window) { Initialize(); }
     ~WindowFoundation() { Uninitialize(); }
-    bool Create(const std::wstring title) {
+    bool Create(const std::wstring& title) {
         if (!CreateNative(title)) {
             return false;
         }
@@ -45,13 +45,13 @@ class WindowFoundation {
         WNDCLASSEXW classInfo{};
         classInfo.cbSize        = sizeof(WNDCLASSEXW);
         classInfo.style         = CS_HREDRAW | CS_VREDRAW; // Here must be deleted after logic optimized
-        classInfo.lpfnWndProc   = WindowFoundation::WindowProc;
+        classInfo.lpfnWndProc   = WindowFoundation::WindowProcedure;
         classInfo.cbClsExtra    = 0;
         classInfo.cbWndExtra    = 0;
         classInfo.hInstance     = g_processInstance;
         classInfo.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
         classInfo.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-        classInfo.hbrBackground = (HBRUSH)(COLOR_WINDOW);
+        classInfo.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
         classInfo.lpszMenuName  = nullptr;
         classInfo.lpszClassName = L"LyraUniversalWindowClass";
         classInfo.hIconSm       = nullptr;
@@ -61,7 +61,7 @@ class WindowFoundation {
     void Uninitialize() {
         if (_CommonClassAtom) {
             UnregisterClassW(MAKEINTATOM(_CommonClassAtom), g_processInstance);
-            _CommonClassAtom = NULL;
+            _CommonClassAtom = 0;
         }
     }
     bool CreateNative(const std::wstring& title) {
@@ -87,14 +87,8 @@ class WindowFoundation {
         return nativeHandle != nullptr;
     }
 
-    bool HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, /*Out*/ LRESULT& outResult) {
-        outResult = NULL;
-
-        if (uMsg == WM_CREATE) {
-            // lParam is the handle of the window from WindowProc.if.uMsg==WM_CREATE.
-            SetWindowPos((HWND)lParam, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-            return true;
-        }
+    bool HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, _Out_ LRESULT& outResult) {
+        outResult = 0;
 
         if (uMsg == WM_SIZE) {
             _selfLayout->UpdateSize(lParam);
@@ -117,18 +111,20 @@ class WindowFoundation {
             return true;
         }
 
-        if (uMsg == WM_NCCALCSIZE && wParam == TRUE) {
+        if (uMsg == WM_NCCALCSIZE) {
             return true;
         }
 
         return false;
     }
 
-    static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    static LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+        // HACK: TLS??
         static std::unordered_map<HWND, WindowFoundation*> instanceMap{};
         static HWND                                        ownerHandle;
 
-        if (uMsg == WM_CREATE) {
+        LRESULT result = 0;
+        if (uMsg == WM_NCCREATE) {
             const auto createStruct = (CREATESTRUCTW*)lParam;
             const auto self         = (WindowFoundation*)createStruct->lpCreateParams;
 
@@ -136,34 +132,28 @@ class WindowFoundation {
             if (instanceMap.size() == 1) {
                 ownerHandle = hWnd;
             }
-
-            LRESULT _noop{};
-            self->HandleMessage(uMsg, NULL, (LPARAM)hWnd, _noop);
-
-            return NULL;
+            self->HandleMessage(uMsg, wParam, lParam, result);
+            return TRUE;
         }
 
-        if (uMsg == WM_DESTROY) {
-            LRESULT _noop{};
-            if (instanceMap.contains(hWnd)) {
-                instanceMap[hWnd]->HandleMessage(uMsg, NULL, NULL, _noop);
-            }
+        const auto it = instanceMap.find(hWnd);
+        if (it != instanceMap.end()) {
+            if (uMsg == WM_NCDESTROY) {
+                it->second->HandleMessage(uMsg, wParam, lParam, result);
 
-            instanceMap.erase(hWnd);
-            if (ownerHandle == hWnd) {
-                ownerHandle = nullptr;
-            }
+                instanceMap.erase(hWnd);
+                if (ownerHandle == hWnd) {
+                    ownerHandle = nullptr;
+                }
 
-            if (instanceMap.empty() || ownerHandle == nullptr) {
-                ::PostQuitMessage(0);
-            }
-            return NULL;
-        }
-
-        if (instanceMap.contains(hWnd)) {
-            LRESULT result = NULL;
-            if (instanceMap[hWnd]->HandleMessage(uMsg, wParam, lParam, result)) {
-                return result;
+                if (instanceMap.empty() || ownerHandle == nullptr) {
+                    ::PostQuitMessage(0);
+                }
+                return 0;
+            } else {
+                if (it->second->HandleMessage(uMsg, wParam, lParam, result)) {
+                    return result;
+                }
             }
         }
 
@@ -207,7 +197,7 @@ void Run(std::shared_ptr<WindowFoundation>& ownerWindow) {
         }
 
         TranslateMessage(&message);
-        DispatchMessage(&message);
+        DispatchMessageW(&message);
     }
 };
 } // namespace Lyra

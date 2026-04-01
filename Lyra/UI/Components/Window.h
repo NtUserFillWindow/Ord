@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../Foundation/Base.h"
 #include "Text.h"
 #include "Button.h"

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../Foundation/Base.h"
 
 namespace Lyra::UI::Components {
@@ -19,7 +19,7 @@ class Text : public Foundation::Base::RenderableNode<false> {
         const auto&         font = Foundation::Managers::FontManager::Instance().GetFont(L"Segoe UI", 24);
         Gdiplus::SolidBrush brush(Gdiplus::Color::White);
 
-        graphics.DrawString(_content.c_str(), _content.length(), font.get(), Gdiplus::PointF(.0f, .0f), &brush);
+        graphics.DrawString(_content.c_str(), (int)_content.length(), font.get(), Gdiplus::PointF(.0f, .0f), &brush);
         return true;
     };
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Text.h"
 
 namespace Lyra::UI::Components {
