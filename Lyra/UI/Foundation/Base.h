@@ -15,8 +15,6 @@ namespace Lyra::UI::Foundation::Base {
 class Object {
   public:
     std::wstring_view Type = L"Object";
-
-    void Event();
 };
 
 class RenderableObject : public Object {
@@ -162,7 +160,7 @@ struct Node : public NodeBase {
   public:
     bool Nestable() const override { return IsNestable; }
 
-    void AppendChild(NodeBase* child, uint32_t z = std::numeric_limits<uint32_t>::max()) override {
+    virtual void AppendChild(NodeBase* child, uint32_t z = std::numeric_limits<uint32_t>::max()) override {
         if constexpr (!IsNestable) {
             return;
         }
@@ -203,7 +201,7 @@ struct Node : public NodeBase {
         Sort(false);
     }
 
-    void RemoveChild(NodeBase* child) override {
+    virtual void RemoveChild(NodeBase* child) override {
         if constexpr (!IsNestable) {
             return;
         }

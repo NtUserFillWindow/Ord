@@ -16,6 +16,66 @@ class Layout : public Foundation::Base::RenderableNode<true> {
             return false;
         }
 
+        if (_isDirty) {
+            RecalculateComponentPosition();
+            _isDirty = false;
+        }
+
+        auto&      graphics = renderer.AllocGraphics();
+        auto       state    = graphics.Save();
+        const auto selfRect = GetLayoutRect();
+
+        graphics.TranslateTransform((float_t)selfRect.X, (float_t)selfRect.Y);
+        graphics.IntersectClip(Gdiplus::Rect(0, 0, selfRect.Width, selfRect.Height));
+        Render(renderer);
+        graphics.Restore(state);
+
+        for (auto& child : children) {
+            auto* node = (RenderableNode*)child;
+
+            const auto childState = graphics.Save();
+            node->PreRender(renderer);
+            graphics.Restore(childState);
+        }
+        return true;
+    }
+
+    void SetLayout(const LayoutData& layout) {
+        _layout  = layout;
+        _isDirty = true;
+    }
+    void SetLayout(LayoutData&& layout) noexcept {
+        _layout  = std::move(layout);
+        _isDirty = true;
+    }
+    void SetLayout(std::initializer_list<Point> layout) {
+        _layout.assign(layout.begin(), layout.end());
+        _isDirty = true;
+    }
+
+    // void SetLayoutRect() {
+    //}
+
+    void SetAlign(Align x, Align y) noexcept {
+        _alignX  = x;
+        _alignY  = y;
+        _isDirty = true;
+    }
+    void SetHorizontalAlign(Align x) noexcept {
+        _alignX  = x;
+        _isDirty = true;
+    }
+    void SetVerticalAlign(Align y) noexcept {
+        _alignY  = y;
+        _isDirty = true;
+    }
+
+  private:
+    void RecalculateComponentPosition() {
+        if (children.empty() || _layout.empty()) {
+            return;
+        }
+
         uint16_t maxRow = 0;
         uint16_t maxCol = 0;
         for (const auto& point : _layout) {
@@ -55,32 +115,20 @@ class Layout : public Foundation::Base::RenderableNode<true> {
         }
 
         const auto selfRect = GetLayoutRect();
-        float_t    x        = 0;
-        float_t    y        = 0;
+        int32_t    x        = 0;
+        int32_t    y        = 0;
 
-        if (_alignX & Align::Center) x = (GetLayoutRect().Width - requiredWidth) * 0.5f;
-        else if (_alignX & Align::End) x = (float_t)(GetLayoutRect().Width - requiredWidth);
-        if (_alignY & Align::Center) y = (GetLayoutRect().Height - requiredHeight) * 0.5f;
-        else if (_alignY & Align::End) y = (float_t)(GetLayoutRect().Height - requiredHeight);
+        if (_alignX & Align::Center) x = (int32_t)((selfRect.Width - requiredWidth) * 0.5f);
+        else if (_alignX & Align::End) x = selfRect.Width - requiredWidth;
+        if (_alignY & Align::Center) y = (int32_t)((selfRect.Height - requiredHeight) * 0.5f);
+        else if (_alignY & Align::End) y = selfRect.Height - requiredHeight;
 
-        auto& graphics = renderer.AllocGraphics();
-        auto  state    = graphics.Save();
-
-        graphics.TranslateTransform((float_t)selfRect.X, (float_t)selfRect.Y);
-        graphics.IntersectClip(Gdiplus::Rect(0, 0, selfRect.Width, selfRect.Height));
-        Render(renderer);
-        graphics.Restore(state);
-
-        state = graphics.Save();
-        graphics.TranslateTransform(x, y);
-        graphics.IntersectClip(Gdiplus::Rect(0, 0, requiredWidth, requiredHeight));
-
-        std::vector<float_t> colStartX(maxCol + 1, 0);
+        std::vector<int32_t> colStartX(maxCol + 1, 0);
         for (uint16_t c = 1; c <= maxCol; ++c) {
             colStartX[c] = colStartX[(size_t)c - 1] + colWidths[(size_t)c - 1] + _itemGap;
         }
 
-        std::vector<float_t> rowStartY(maxRow + 1, 0);
+        std::vector<int32_t> rowStartY(maxRow + 1, 0);
         for (uint16_t r = 1; r <= maxRow; ++r) {
             rowStartY[r] = rowStartY[(size_t)r - 1] + rowHeights[(size_t)r - 1] + _rowGap;
         }
@@ -90,29 +138,17 @@ class Layout : public Foundation::Base::RenderableNode<true> {
             const auto row   = _layout[i][1];
             auto*      child = (RenderableNode*)children[i];
 
-            const auto childState = graphics.Save();
-            graphics.TranslateTransform(colStartX[col], rowStartY[row]);
-            child->PreRender(renderer);
-            graphics.Restore(childState);
+            auto childRect = child->GetLayoutRect();
+            childRect.X    = x + colStartX[col];
+            childRect.Y    = y + rowStartY[row];
+
+            child->SetLayoutRect(childRect);
         }
-
-        graphics.Restore(state);
-        return true;
     }
-
-    void SetLayout(const LayoutData& layout) { _layout = layout; }
-    void SetLayout(LayoutData&& layout) noexcept { _layout = std::move(layout); }
-    void SetLayout(std::initializer_list<Point> layout) { _layout.assign(layout.begin(), layout.end()); }
-
-    void SetAlign(Align x, Align y) noexcept {
-        _alignX = x;
-        _alignY = y;
-    }
-    void SetHorizontalAlign(Align x) noexcept { _alignX = x; }
-    void SetVerticalAlign(Align y) noexcept { _alignY = y; }
 
   private:
     LayoutData _layout  = {};
+    bool       _isDirty = false;
     int32_t    _itemGap = 20;
     int32_t    _rowGap  = 0;
     Align      _alignX  = {Align::Start};

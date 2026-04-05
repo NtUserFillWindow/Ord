@@ -10,6 +10,5 @@ int32_t wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In
     test->Create(L"Test Window");
     test->Activate();
     Lyra::Run(test);
-    Lyra::Uninitialize();
     return NULL;
 }

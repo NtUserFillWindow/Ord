@@ -18,9 +18,21 @@ struct KeyData {
 };
 
 struct MouseData {
-    Gdiplus::Point position  = {};
-    int            keyId     = 0;
-    bool           isPressed = false;
+    enum class MouseTypes : uint8_t {
+        MouseMove              = 0b1111,
+        LeftButtonUp           = 0b0000,
+        LeftButtonDown         = 0b0001,
+        LeftButtonDoubleDown   = 0b0010,
+        RightButtonUp          = 0b0100,
+        RightButtonDown        = 0b0101,
+        RightButtonDoubleDown  = 0b0110,
+        MiddleButtonUp         = 0b1000,
+        MiddleButtonDown       = 0b1001,
+        MiddleButtonDoubleDown = 0b1010,
+    };
+
+    Gdiplus::Point position = {};
+    MouseTypes     type     = MouseTypes::MouseMove;
 };
 } // namespace EventPayloads
 

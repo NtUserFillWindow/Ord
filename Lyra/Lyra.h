@@ -115,20 +115,82 @@ class WindowFoundation {
             return true;
         }
 
-        if (uMsg == WM_MOUSEMOVE) {
+        if ((WM_MOUSEFIRST <= uMsg && WM_MOUSEFIRST <= WM_MOUSELAST) || uMsg == WM_NCHITTEST) {
+            using Data  = UI::Foundation::Events::EventPayloads::MouseData;
+            using Types = UI::Foundation::Events::EventArgs::EventTypes;
+
             Gdiplus::Point position(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            Data           data{
+                position,
+                Data::MouseTypes::MouseMove,
+            };
 
-            UI::Foundation::Events::EventPayloads::MouseData data{position, true};
-            _selfLayout->DispatchEvent(UI::Foundation::Events::EventArgs::EventTypes::MouseEvent, data, position);
+            if (uMsg == WM_MOUSEMOVE) {
+                data.type = Data::MouseTypes::MouseMove;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            // 左键
+
+            if (uMsg == WM_LBUTTONDOWN) {
+                data.type = Data::MouseTypes::LeftButtonDown;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            if (uMsg == WM_LBUTTONUP) {
+                data.type = Data::MouseTypes::LeftButtonUp;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            if (uMsg == WM_LBUTTONDBLCLK) {
+                data.type = Data::MouseTypes::LeftButtonDoubleDown;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            // 右键
+
+            if (uMsg == WM_RBUTTONDOWN) {
+                data.type = Data::MouseTypes::RightButtonDown;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            if (uMsg == WM_RBUTTONUP) {
+                data.type = Data::MouseTypes::RightButtonUp;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            if (uMsg == WM_RBUTTONDBLCLK) {
+                data.type = Data::MouseTypes::RightButtonDoubleDown;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            // 中键
+
+            if (uMsg == WM_MBUTTONDOWN) {
+                data.type = Data::MouseTypes::MiddleButtonDown;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            if (uMsg == WM_MBUTTONUP) {
+                data.type = Data::MouseTypes::MiddleButtonUp;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            if (uMsg == WM_MBUTTONDBLCLK) {
+                data.type = Data::MouseTypes::MiddleButtonDoubleDown;
+                _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
+            }
+
+            // 命中测试
+
+            if (uMsg == WM_NCHITTEST) {
+                if (_selfLayout->HitTest(position) == _selfLayout.get()) {
+                    outResult = HTCAPTION;
+                }
+
+                return true;
+            }
         }
-
-        if (uMsg == WM_LBUTTONDOWN) {
-            Gdiplus::Point position(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-
-            UI::Foundation::Events::EventPayloads::MouseData data{position, true};
-            _selfLayout->DispatchEvent(UI::Foundation::Events::EventArgs::EventTypes::MouseEvent, data, position);
-        }
-
         return false;
     }
 
@@ -187,6 +249,8 @@ void Initialize(HINSTANCE processInstance) {
     Gdiplus::GdiplusStartup(&g_gdiplusToken, &input, nullptr);
 }
 void Uninitialize() {
+    // Todo: Release All Window Instances.
+    g_ownerWindow.reset();
     Lyra::UI::Foundation::Managers::FontManager::Instance().Clear();
 
     Gdiplus::GdiplusShutdown(g_gdiplusToken);

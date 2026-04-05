@@ -18,10 +18,12 @@ class Window : public Foundation::Base::RenderableNode<true> {
 
     void BindNativeHandle(HWND windowHandle) { renderer.ApplyWindow(windowHandle); }
     void UpdateSize(LPARAM lParam) {
+        const auto width  = GET_X_LPARAM(lParam);
+        const auto height = GET_Y_LPARAM(lParam);
+
         renderer.UpdateSize(lParam);
-        SetLayoutRect({0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
-        ((RenderableNode*)children[0])
-            ->SetLayoutRect({0, 0, GET_X_LPARAM(lParam), 30}); // zindex-0 means layout component.
+        SetLayoutRect({0, 0, width, height});
+        ((RenderableNode*)children[0])->SetLayoutRect({0, 0, width, 30}); // zindex-0 means layout component.
     }
 
     void Present() { renderer.Present(); }
@@ -68,13 +70,7 @@ class Window : public Foundation::Base::RenderableNode<true> {
   private:
     void InitializeComponents() {
         gsl::owner<Layout*> layout = new Layout{};
-        layout->SetHorizontalAlign(Align::End);
-        layout->SetLayoutRect({});
-        layout->SetLayout({
-            {0, 0},
-            {1, 0},
-            {2, 0}
-        });
+
         for (uint8_t i = 0; i < 3; i++) {
             gsl::owner<Button*> button = new Button{};
             button->SetLayoutRect({0, 0, 48, 30});
@@ -84,6 +80,15 @@ class Window : public Foundation::Base::RenderableNode<true> {
         gsl::owner<Text*> text = new Text{};
         text->SetLayoutRect({0, 0, 200, 30});
         text->SetContent(L"新建vb窗口1");
+
+        layout->SetHorizontalAlign(Align::End);
+        layout->SetLayoutRect({});
+        layout->SetLayout({
+            {0, 0},
+            {1, 0},
+            {2, 0}
+        });
+
         AppendChild(layout);
         AppendChild(text);
     };
