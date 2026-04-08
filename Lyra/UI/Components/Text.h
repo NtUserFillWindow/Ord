@@ -7,12 +7,14 @@
 namespace Lyra::UI::Components {
 class Text : public Foundation::Base::RenderableNode<false> {
   public:
-    Text()                       = default;
     Text(Text&&)                 = delete;
     Text(const Text&)            = delete;
     Text& operator=(Text&&)      = delete;
     Text& operator=(const Text&) = delete;
     ~Text()                      = default;
+
+  public:
+    Text() { Type = L"Object.Renderable.Text"; }
 
     bool Render(Foundation::Managers::Renderer& renderer) override {
         auto& graphics = renderer.AllocGraphics();

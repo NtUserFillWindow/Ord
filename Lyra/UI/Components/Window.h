@@ -13,7 +13,10 @@ class Window : public Foundation::Base::RenderableNode<true> {
     Window& operator=(const Window&) = delete;
 
   public:
-    Window() { InitializeComponents(); }
+    Window() {
+        Type = L"Object.Renderable.Window";
+        InitializeComponents();
+    }
     ~Window() = default;
 
     void BindNativeHandle(HWND windowHandle) { renderer.ApplyWindow(windowHandle); }
@@ -53,6 +56,7 @@ class Window : public Foundation::Base::RenderableNode<true> {
             e.target = this;
         }
 
+        auto a = ((RenderableNode*)e.target)->GetUniqueID();
         (int)std::sin(0);
 
         for (auto& callback : _eventCallbacks) {
@@ -75,6 +79,7 @@ class Window : public Foundation::Base::RenderableNode<true> {
             gsl::owner<Button*> button = new Button{};
             button->SetLayoutRect({0, 0, 48, 30});
             button->SetContent(L"按钮 " + std::to_wstring(i));
+            button->AppendUniqueID(i + 1);
             layout->AppendChild(button);
         }
         gsl::owner<Text*> text = new Text{};
@@ -94,7 +99,12 @@ class Window : public Foundation::Base::RenderableNode<true> {
     };
 
   public:
-    Foundation::Managers::Renderer                 renderer{};
+    Foundation::Managers::Renderer renderer{};
+
+  private:
+    constexpr static uint32_t                      IDMinimizeButton = 1;
+    constexpr static uint32_t                      IDMaximizeButton = 2;
+    constexpr static uint32_t                      IDCloseButton    = 3;
     std::vector<Foundation::Events::EventCallback> _eventCallbacks{};
-};
+}; // namespace Lyra::UI::Components
 } // namespace Lyra::UI::Components

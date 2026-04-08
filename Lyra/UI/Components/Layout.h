@@ -10,6 +10,8 @@ class Layout : public Foundation::Base::RenderableNode<true> {
     using Point      = std::array<uint16_t, 2>;
     using LayoutData = std::vector<Point>;
 
+    Layout() { Type = L"Object.Renderable.Layout"; }
+
     bool Render(Foundation::Managers::Renderer&) { return true; };
     bool PreRender(Foundation::Managers::Renderer& renderer) {
         if (children.empty() || _layout.empty()) {

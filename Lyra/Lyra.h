@@ -1,6 +1,7 @@
 ﻿#pragma once
 #define NOMINMAX
 
+#include <format>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -87,15 +88,15 @@ class WindowFoundation {
         return nativeHandle != nullptr;
     }
 
-    bool HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, _Out_ LRESULT& outResult) {
+    bool HandleMessage(UINT message, WPARAM wParam, LPARAM lParam, _Out_ LRESULT& outResult) {
         outResult = 0;
 
-        if (uMsg == WM_SIZE) {
+        if (message == WM_SIZE) {
             _selfLayout->UpdateSize(lParam);
             return true;
         }
 
-        if (uMsg == WM_PAINT) {
+        if (message == WM_PAINT) {
             { // I don't know whether I could remove this block.
                 PAINTSTRUCT paintStruct{};
                 const auto  hdc = ::BeginPaint(nativeHandle, &paintStruct);
@@ -107,15 +108,15 @@ class WindowFoundation {
             }
         }
 
-        if (uMsg == WM_ERASEBKGND) {
+        if (message == WM_ERASEBKGND) {
             return true;
         }
 
-        if (uMsg == WM_NCCALCSIZE) {
+        if (message == WM_NCCALCSIZE) {
             return true;
         }
 
-        if ((WM_MOUSEFIRST <= uMsg && WM_MOUSEFIRST <= WM_MOUSELAST) || uMsg == WM_NCHITTEST) {
+        if ((WM_MOUSEFIRST <= message && message <= WM_MOUSELAST) || message == WM_NCHITTEST) {
             using Data  = UI::Foundation::Events::EventPayloads::MouseData;
             using Types = UI::Foundation::Events::EventArgs::EventTypes;
 
@@ -125,66 +126,94 @@ class WindowFoundation {
                 Data::MouseTypes::MouseMove,
             };
 
-            if (uMsg == WM_MOUSEMOVE) {
+#ifdef _DEBUG
+
+            const auto target = _selfLayout->HitTest(position);
+            if (message != WM_NCHITTEST)
+                OutputDebugStringW(
+                    std::format(
+                        L"Object: {} | Mouse Event({}): Component id - {} | Mouse.X - {} | Mouse.Y - {}\r\n",
+                        target->Type,
+                        message,
+                        target->GetUniqueID(),
+                        position.X,
+                        position.Y
+                    )
+                        .c_str()
+                );
+
+#endif
+
+            if (message == WM_MOUSEMOVE) {
                 data.type = Data::MouseTypes::MouseMove;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
             // 左键
 
-            if (uMsg == WM_LBUTTONDOWN) {
+            if (message == WM_LBUTTONDOWN) {
                 data.type = Data::MouseTypes::LeftButtonDown;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
-            if (uMsg == WM_LBUTTONUP) {
+            if (message == WM_LBUTTONUP) {
                 data.type = Data::MouseTypes::LeftButtonUp;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
-            if (uMsg == WM_LBUTTONDBLCLK) {
+            if (message == WM_LBUTTONDBLCLK) {
                 data.type = Data::MouseTypes::LeftButtonDoubleDown;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
             // 右键
 
-            if (uMsg == WM_RBUTTONDOWN) {
+            if (message == WM_RBUTTONDOWN) {
                 data.type = Data::MouseTypes::RightButtonDown;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
-            if (uMsg == WM_RBUTTONUP) {
+            if (message == WM_RBUTTONUP) {
                 data.type = Data::MouseTypes::RightButtonUp;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
-            if (uMsg == WM_RBUTTONDBLCLK) {
+            if (message == WM_RBUTTONDBLCLK) {
                 data.type = Data::MouseTypes::RightButtonDoubleDown;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
             // 中键
 
-            if (uMsg == WM_MBUTTONDOWN) {
+            if (message == WM_MBUTTONDOWN) {
                 data.type = Data::MouseTypes::MiddleButtonDown;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
-            if (uMsg == WM_MBUTTONUP) {
+            if (message == WM_MBUTTONUP) {
                 data.type = Data::MouseTypes::MiddleButtonUp;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
-            if (uMsg == WM_MBUTTONDBLCLK) {
+            if (message == WM_MBUTTONDBLCLK) {
                 data.type = Data::MouseTypes::MiddleButtonDoubleDown;
                 _selfLayout->DispatchEvent(Types::MouseEvent, data, position);
             }
 
             // 命中测试
 
-            if (uMsg == WM_NCHITTEST) {
-                if (_selfLayout->HitTest(position) == _selfLayout.get()) {
+            if (message == WM_NCHITTEST) {
+                POINT relativePosition = {};
+                relativePosition.x     = position.X;
+                relativePosition.y     = position.Y;
+
+                ScreenToClient(nativeHandle, &relativePosition);
+                position.X = relativePosition.x;
+                position.Y = relativePosition.y;
+
+                outResult = HTCLIENT;
+
+                if (_selfLayout->HitTest(position) == _selfLayout->children[0]) {
                     outResult = HTCAPTION;
                 }
 

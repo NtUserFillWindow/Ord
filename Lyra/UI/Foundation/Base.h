@@ -53,6 +53,7 @@ class RenderableObject : public Object {
 
   private:
     bool          _isVisible     = true;
+    bool          _isPermeable   = false; // 实在找不到可替代的词汇了 orz
     Gdiplus::Rect _layoutRect    = {};
     Gdiplus::Rect _interactBound = {};
 };
@@ -160,7 +161,7 @@ struct Node : public NodeBase {
   public:
     bool Nestable() const override { return IsNestable; }
 
-    virtual void AppendChild(NodeBase* child, uint32_t z = std::numeric_limits<uint32_t>::max()) override {
+    void AppendChild(NodeBase* child, uint32_t z = std::numeric_limits<uint32_t>::max()) override {
         if constexpr (!IsNestable) {
             return;
         }
@@ -201,7 +202,7 @@ struct Node : public NodeBase {
         Sort(false);
     }
 
-    virtual void RemoveChild(NodeBase* child) override {
+    void RemoveChild(NodeBase* child) override {
         if constexpr (!IsNestable) {
             return;
         }
@@ -240,19 +241,34 @@ struct Node : public NodeBase {
             }
         }
     }
+
+    uint32_t GetUniqueID() const { return _uniqueID; }
+
+    void AppendUniqueID(uint32_t id) {
+        static std::vector<uint32_t> idPool{};
+        if (std::find(idPool.rbegin(), idPool.rend(), id) != idPool.rend()) {
+            throw std::exception("ID has already existed in the pool. It must be unique at all. ");
+        }
+
+        idPool.push_back(id);
+        _uniqueID = id;
+    }
+
+  private:
+    uint32_t _uniqueID = std::numeric_limits<uint32_t>::max();
 };
 
 template <bool IsNestable = false>
 class RenderableNode : public Node<IsNestable>, public RenderableObject {
   public:
-    virtual RenderableObject* HitTest(const Gdiplus::Point& screenPos) override {
+    virtual RenderableNode* HitTest(const Gdiplus::Point& screenPos) override {
         if (!BaseHitTest(screenPos)) {
             return nullptr;
         }
 
         if constexpr (IsNestable) {
             const std::vector<NodeBase*>& children     = this->GetChildren();
-            RenderableObject*             targetObject = nullptr;
+            RenderableNode*               targetObject = nullptr;
 
             for (auto it = children.rbegin(); it != children.rend(); ++it) {
                 if (auto child = *it) {
