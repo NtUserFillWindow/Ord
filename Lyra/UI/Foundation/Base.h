@@ -40,6 +40,9 @@ class RenderableObject : public Object {
     auto IsVisible() const { return _isVisible; }
     void SetVisible(bool visible) { _isVisible = visible; }
 
+    auto IsPermeable() const { return _isPermeable; }
+    void SetPermeable(bool permeable) { _isPermeable = permeable; }
+
     auto GetLayoutRect() const { return _layoutRect; }
     void SetLayoutRect(Gdiplus::Rect rect) {
         _layoutRect = rect;
@@ -48,7 +51,7 @@ class RenderableObject : public Object {
 
   protected:
     bool BaseHitTest(const Gdiplus::Point& mousePosition) const {
-        return _isVisible && _interactBound.Contains(mousePosition);
+        return _isVisible && !_isPermeable && _interactBound.Contains(mousePosition);
     }
 
   private:

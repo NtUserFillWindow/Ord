@@ -85,6 +85,7 @@ class Window : public Foundation::Base::RenderableNode<true> {
         gsl::owner<Text*> text = new Text{};
         text->SetLayoutRect({0, 0, 200, 30});
         text->SetContent(L"新建vb窗口1");
+        text->SetPermeable(true);
 
         layout->SetHorizontalAlign(Align::End);
         layout->SetLayoutRect({});

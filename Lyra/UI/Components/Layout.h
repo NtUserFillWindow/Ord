@@ -23,23 +23,7 @@ class Layout : public Foundation::Base::RenderableNode<true> {
             _isDirty = false;
         }
 
-        auto&      graphics = renderer.AllocGraphics();
-        auto       state    = graphics.Save();
-        const auto selfRect = GetLayoutRect();
-
-        graphics.TranslateTransform((float_t)selfRect.X, (float_t)selfRect.Y);
-        graphics.IntersectClip(Gdiplus::Rect(0, 0, selfRect.Width, selfRect.Height));
-        Render(renderer);
-        graphics.Restore(state);
-
-        for (auto& child : children) {
-            auto* node = (RenderableNode*)child;
-
-            const auto childState = graphics.Save();
-            node->PreRender(renderer);
-            graphics.Restore(childState);
-        }
-        return true;
+        return RenderableNode<true>::PreRender(renderer);
     }
 
     void SetLayout(const LayoutData& layout) {
