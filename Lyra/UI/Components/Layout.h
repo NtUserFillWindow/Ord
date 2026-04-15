@@ -12,8 +12,8 @@ class Layout : public Foundation::Base::RenderableNode<true> {
 
     Layout() { Type = L"Object.Renderable.Layout"; }
 
-    bool Render(Foundation::Managers::Renderer&) { return true; };
-    bool PreRender(const Foundation::RenderContext& renderContext) {
+    bool Render(Foundation::Managers::Renderer&) override { return true; };
+    bool PreRender(const Foundation::RenderContext& renderContext) override {
         if (children.empty() || _layout.empty()) {
             return false;
         }

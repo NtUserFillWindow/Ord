@@ -101,7 +101,13 @@ class WindowFoundation {
         if (message == WM_PAINT) {
             PAINTSTRUCT paintStruct{};
             const auto  hdc           = ::BeginPaint(nativeHandle, &paintStruct);
-            const auto  renderContext = UI::Foundation::RenderContext::Build(&_selfLayout->renderer, paintStruct.rcPaint);
+            const auto  invalidRect   = paintStruct.rcPaint;
+            const auto  renderContext = UI::Foundation::RenderContext::Build(&_selfLayout->renderer, invalidRect);
+
+            const auto graphics = _selfLayout->renderer.AllocGraphics().GetGraphics();
+            UI::Native::DllExports::GdipSetClipRectI(
+                graphics, invalidRect.left, invalidRect.top, invalidRect.right - invalidRect.left, invalidRect.bottom - invalidRect.top, Gdiplus::CombineModeIntersect
+            );
 
             if (_selfLayout->PreRender(renderContext)) {
                 _selfLayout->Present();

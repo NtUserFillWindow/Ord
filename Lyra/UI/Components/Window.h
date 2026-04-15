@@ -73,7 +73,7 @@ class Window : public Foundation::Base::RenderableNode<true> {
             layout->AppendChild(button);
         }
         gsl::owner<Text*> text = new Text{};
-        text->SetLayoutRect({0, 0, 200, 30});
+        text->SetLayoutRect({0, 0, 200, 60});
         text->SetContent(L"新建vb窗口1");
         text->SetPermeable(true);
 

@@ -262,11 +262,29 @@ class RenderableNode : public Node<IsNestable>, public RenderableObject {
 
         Render(renderer);
 
-        if constexpr (IsNestable) {
-            for (auto* child : this->GetChildren()) {
-                auto node = (Node<true>*)child;
-                ((RenderableNode*)node)->PreRender(context);
+        if constexpr (!IsNestable) {
+            Native::DllExports::GdipRestoreGraphics(pGraphics, state);
+            return true;
+        }
+
+        for (auto* child : this->GetChildren()) {
+            auto       node = (RenderableNode<true>*)(Node<true>*)child;
+            const auto rect = node->GetLayoutRect();
+
+#ifdef _DEBUG
+            OutputDebugStringW(
+                std::format(
+                    L"Object: {} | Component id - {} | RenderDirtyStatus: {}\r\n", node->Type, node->GetUniqueID(), rect.IntersectsWith(context.dirtyRect) ? L"Retained" : L"Skipped"
+                )
+                    .c_str()
+            );
+#endif
+
+            if (!rect.IntersectsWith(context.dirtyRect)) {
+                continue;
             }
+
+            node->PreRender(context);
         }
 
         Native::DllExports::GdipRestoreGraphics(pGraphics, state);
