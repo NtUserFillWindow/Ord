@@ -1,6 +1,7 @@
 ﻿#pragma once
 #define NOMINMAX
 
+#include <dwmapi.h>
 #include <format>
 #include <memory>
 #include <string>
@@ -8,6 +9,8 @@
 
 #include "UI/Startup.h"
 #include "UI/Components/Window.h"
+
+#pragma comment(lib, "dwmapi.lib")
 
 namespace Lyra {
 class WindowFoundation;
@@ -77,7 +80,7 @@ class WindowFoundation {
             0,
             MAKEINTATOM(_CommonClassAtom),
             title.c_str(),
-            WS_OVERLAPPEDWINDOW,
+            WS_THICKFRAME | WS_BORDER | WS_MAXIMIZEBOX | WS_MINIMIZEBOX,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -91,29 +94,46 @@ class WindowFoundation {
     }
 
     bool HandleMessage(UINT message, WPARAM wParam, LPARAM lParam, _Out_ LRESULT& outResult) {
-        outResult = 0;
+        outResult = NULL;
+
+        if (message == WM_CREATE) {
+            MARGINS margins = {0, 0, 1, 0};
+            DwmExtendFrameIntoClientArea(nativeHandle, &margins);
+            return true;
+        }
 
         if (message == WM_SIZE) {
             _selfLayout->UpdateSize(lParam);
             return true;
         }
 
-        if (message == WM_PAINT) {
-            PAINTSTRUCT paintStruct{};
-            const auto  hdc           = ::BeginPaint(nativeHandle, &paintStruct);
-            const auto  invalidRect   = paintStruct.rcPaint;
-            const auto  renderContext = UI::Foundation::RenderContext::Build(&_selfLayout->renderer, invalidRect);
+        if (message == WM_NCPAINT) {
+            // PAINTSTRUCT paintStruct{};
+            //::BeginPaint(nativeHandle, &paintStruct);
+            // const auto invalidRect   = paintStruct.rcPaint;
+            auto renderContext = UI::Foundation::RenderContext::Build(&_selfLayout->renderer, {NULL});
+
+            renderContext.dirtyRect = _selfLayout->GetLayoutRect();
 
             const auto graphics = _selfLayout->renderer.AllocGraphics().GetGraphics();
-            UI::Native::DllExports::GdipSetClipRectI(
-                graphics, invalidRect.left, invalidRect.top, invalidRect.right - invalidRect.left, invalidRect.bottom - invalidRect.top, Gdiplus::CombineModeIntersect
-            );
+            // UI::Native::DllExports::GdipSetClipRectI(
+            //     graphics, invalidRect.left, invalidRect.top, invalidRect.right - invalidRect.left, invalidRect.bottom - invalidRect.top, Gdiplus::CombineModeIntersect
+            //);
+            UI::Native::DllExports::GdipGraphicsClear(graphics, 0xFFFF0000);
 
             if (_selfLayout->PreRender(renderContext)) {
                 _selfLayout->Present();
             }
 
-            ::EndPaint(nativeHandle, &paintStruct);
+            UI::Native::GdipPtr<Gdiplus::GpPen> pen{};
+            UI::Native::DllExports::GdipCreatePen1(0xFFFF0000, 3, Gdiplus::UnitPixel, pen.AddressOf());
+
+            //::EndPaint(nativeHandle, &paintStruct);
+            return true;
+        }
+
+        if (message == WM_NCACTIVATE) {
+            ::RedrawWindow(nativeHandle, nullptr, nullptr, RDW_UPDATENOW);
             return true;
         }
 
@@ -122,6 +142,28 @@ class WindowFoundation {
         }
 
         if (message == WM_NCCALCSIZE) {
+            auto params = (NCCALCSIZE_PARAMS*)lParam;
+            if (wParam == TRUE) {
+                WINDOWPLACEMENT windowPlacement = {};
+                windowPlacement.length          = sizeof WINDOWPLACEMENT;
+                GetWindowPlacement(nativeHandle, &windowPlacement);
+
+                if (windowPlacement.showCmd != SW_SHOWMAXIMIZED) {
+                    return true;
+                }
+
+                auto        monitor     = MonitorFromWindow(nativeHandle, MONITOR_DEFAULTTONEAREST);
+                MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+
+                if (GetMonitorInfoW(monitor, &monitorInfo)) {
+                    params->rgrc[0] = monitorInfo.rcWork;
+                }
+            } else {
+                params->rgrc[0].top    -= 4;
+                params->rgrc[0].left   -= 4;
+                params->rgrc[0].bottom -= 4;
+                params->rgrc[0].right  -= 4;
+            }
             return true;
         }
 
